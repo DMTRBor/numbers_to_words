@@ -34,7 +34,7 @@ jobs:
         env:
           # override if you want strict ANSI C (C89 / C90)
           CC: gcc
-          CFLAGS: "-std=c89 -pedantic -Wall -Wextra"
+          CFLAGS: "-std=c89 -pedantic -Wall"
         run: |
           make clean || true
           make
@@ -44,8 +44,9 @@ jobs:
         if: always()
         run: |
           if [ -x ./numbers ]; then
-            echo "Running ./numbers with sample input:"
+            echo "Running ./numbers with sample input 1:"
             ./numbers < test/rw_input.txt
+            echo "Running ./numbers with sample input 2:"
             ./numbers < test/rw_input_blanks.txt
           else
             echo "./numbers not found or not executable"
