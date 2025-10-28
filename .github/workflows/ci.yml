@@ -1,0 +1,62 @@
+name: C (make) CI
+
+# Run on push to any branch and on pull requests
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+# Use a matrix to test on ubuntu-latest and ubuntu-18.04
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, ubuntu-18.04]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Show runner OS info
+        run: |
+          uname -a
+          lsb_release -a || true
+
+      - name: Install build tools (gcc, make)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      # optional: force C89 flags by overriding CC or CFLAGS; adjust if your makefile already sets them
+      - name: Build (make)
+        env:
+          # override if you want strict ANSI C (C89 / C90)
+          CC: gcc
+          CFLAGS: "-std=c89 -pedantic -Wall -Wextra"
+        run: |
+          make clean || true
+          make
+
+      # optional: run the binary (if your makefile produces ./numbers)
+      - name: Run tests / sample run
+        if: always()
+        run: |
+          if [ -x ./numbers ]; then
+            echo "Running ./numbers with sample input:"
+            ./numbers < test/rw_input.txt
+            ./numbers < test/rw_input_blanks.txt
+          else
+            echo "./numbers not found or not executable"
+            ls -la
+          fi
+
+      - name: Upload build artifacts (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: numbers-build
+          path: |
+            ./numbers
+            ./*.o
