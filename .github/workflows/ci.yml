@@ -7,7 +7,6 @@ on:
   pull_request:
     branches: [ "**" ]
 
-# Use a matrix to test on ubuntu-latest and ubuntu-18.04
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -26,24 +25,30 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential
 
-      # optional: force C89 flags by overriding CC or CFLAGS; adjust if your makefile already sets them
+      # Force C89 flags by overriding CC or CFLAGS;
       - name: Build (make)
         env:
-          # override if you want strict ANSI C (C89 / C90)
           CC: gcc
           CFLAGS: "-std=c89 -pedantic -Wall"
         run: |
           make clean || true
           make
 
-      # optional: run the binary (if your makefile produces ./numbers)
+      # Run the binary (if your makefile produces ./numbers)
       - name: Run tests / sample run
         if: always()
         run: |
           if [ -x ./numbers ]; then
-            echo "Running ./numbers with sample input 1:"
+            echo "--- rw_input.txt content ---"
+            cat test/rw_input.txt
+            echo "------------------------------------"
+            echo "Running ./numbers with sample rw_input.txt:"
             ./numbers < test/rw_input.txt
-            echo "Running ./numbers with sample input 2:"
+            echo "--- rw_input_blanks.txt content ---"
+            cat test/rw_input_blanks.txt
+            echo " "
+            echo "------------------------------------"
+            echo "Running ./numbers with sample rw_input_blanks.txt:"
             ./numbers < test/rw_input_blanks.txt
           else
             echo "./numbers not found or not executable"
