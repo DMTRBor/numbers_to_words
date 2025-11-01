@@ -36,7 +36,7 @@ Windows
 call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
 
 # Compile all C sources into numbers.exe
-cl /nologo /W4 /EHsc /std:c89 numbers.c utils.c
+cl /nologo /W4 /EHsc /std:c89 /Fe:numbers.exe *.c
 ```
 
 

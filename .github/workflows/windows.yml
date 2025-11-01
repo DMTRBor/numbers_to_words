@@ -1,0 +1,91 @@
+name: C (MSVC) CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  build:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Show runner OS info
+        shell: cmd
+        run: |
+          systeminfo
+          echo %PROCESSOR_ARCHITECTURE%
+
+      # Normalize input files (Strip potential BOM and enforce Windows CRLF endings)
+      # This step now dynamically finds ALL .txt files in the 'test\' directory.
+      - name: Normalize input files (Dynamic)
+        shell: powershell
+        run: |
+          # Dynamically get all .txt files in the test directory
+          $files = Get-ChildItem -Path test\ -Filter "*.txt" -Recurse
+          
+          foreach ($file in $files) {
+            Write-Host "Normalizing $($file.FullName)..."
+            # Read raw content, enforce Windows CRLF (\r\n) line endings
+            $content = (Get-Content -Path $file.FullName -Raw) -replace "`r`n", "`n" -replace "`n", "`r`n"
+            # Write back using ASCII encoding to strip any leading BOM characters.
+            $content | Out-File -FilePath $file.FullName -Encoding ASCII
+          }
+
+      - name: Build (MSVC)
+        shell: cmd
+        run: |
+          REM Activate the Visual Studio build environment for x64 architecture.
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+
+          REM Compile all C source files (*.c) with C89 standard, naming the executable 'numbers.exe'.
+          cl /nologo /W4 /EHsc /std:c89 /Fe:numbers.exe *.c
+
+      - name: Run tests / sample run (Dynamic)
+        shell: cmd
+        run: |
+          SET EXECUTABLE=numbers.exe
+          SET TEST_DIR=test\
+          
+          if exist %EXECUTABLE% (
+            echo Found %EXECUTABLE%. Starting dynamic tests...
+            
+            REM FOR /R performs a recursive file loop. 
+            REM The %%f variable holds the full path to the found file.
+            FOR /R %TEST_DIR% %%f IN (*.txt) DO (
+                echo ====================================================
+                echo --- Running test with input file: %%f ---
+                echo ====================================================
+                
+                echo Content of %%f:
+                type %%f
+                echo.
+                
+                echo Output from %EXECUTABLE%:
+                REM Run the executable, redirecting the file content as standard input
+                %EXECUTABLE% < %%f
+                echo.
+            )
+            
+            echo ----------------------------------------------------
+            echo All tests finished.
+            
+          ) else (
+            echo %EXECUTABLE% not found or not executable
+            dir
+            exit 1
+          )
+      # ------------------------------------------------------------------
+
+      - name: Upload build artifacts (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: numbers-build-windows
+          path: |
+            numbers.exe
+            *.obj
